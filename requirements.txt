@@ -1,0 +1,11 @@
+# ISRO SIH 2026 Problem Statement 26169 Dependencies
+# AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
+
+pygame>=2.5.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+scipy>=1.10.0
+filterpy>=1.4.5
+matplotlib>=3.7.0
+websockets>=12.0
+pyinstaller>=6.0.0

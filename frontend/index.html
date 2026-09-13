@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISRO FSOC Virtual Camera Tracking System | PS 26169</title>
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <style>
+        /* Custom scrollbar and animations */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        .kpi-badge-pass {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-badge-fail {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-badge-neutral {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.4);
+        }
+
+        .status-badge-acquired {
+            background-color: rgba(16, 185, 129, 0.25);
+            color: #10b981;
+            border: 1px solid #059669;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+        }
+
+        .status-badge-reacquiring {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #f59e0b;
+            border: 1px solid #d97706;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+        }
+
+        .status-badge-lost {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #ef4444;
+            border: 1px solid #dc2626;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+    <!-- TOP MISSION HEADER -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="h-9 w-9 rounded-lg bg-cyan-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-sm tracking-wider">
+                    ISRO
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">SIH 2026 | Problem Statement 26169</span>
+                        <span class="text-xs text-slate-500">●</span>
+                        <span class="text-xs text-slate-400">Software & Smart Automation</span>
+                    </div>
+                    <h1 class="text-sm sm:text-base font-bold text-white tracking-tight">
+                        AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Header Controls & Mode Switcher -->
+            <div class="flex items-center space-x-2">
+                <!-- Mode Switcher -->
+                <div class="bg-slate-950 p-1 rounded-lg border border-slate-800 flex items-center">
+                    <button id="tabSimMode" class="px-3 py-1.5 rounded-md font-medium text-xs bg-cyan-600 text-white shadow-sm">
+                        Virtual Simulation
+                    </button>
+                    <button id="tabVideoMode" class="px-3 py-1.5 rounded-md font-medium text-xs text-slate-400 hover:text-white transition">
+                        Benchmark 2 (.mp4)
+                    </button>
+                </div>
+
+                <!-- Simulation Action Buttons -->
+                <button id="btnPlayPause" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-md font-medium text-xs flex items-center transition">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-md font-medium text-xs flex items-center transition">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+
+        <!-- 1. MANDATORY ISRO PERFORMANCE TARGETS STRIP -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+            <!-- Lock Status -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <span class="text-[11px] font-medium text-slate-400">Lock Status</span>
+                <div class="mt-1 flex items-center justify-between">
+                    <span id="lockStatusBadge" class="status-badge-lost px-2 py-0.5 rounded text-xs font-bold tracking-wider">
+                        TARGET LOST
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tracking Error (<= 10 px) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-400">Tracking Error</span>
+                    <span id="badgeError" class="kpi-badge-pass">PASS (≤10px)</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiError" class="text-xl font-bold font-mono text-white">0.0 px</span>
+                    <span class="text-[10px] text-slate-500 block">Target: ≤ 10 px</span>
+                </div>
+            </div>
+
+            <!-- Acquisition Time (<= 2.0 s) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-400">Acquisition Time</span>
+                    <span id="badgeAcqTime" class="kpi-badge-pass">PASS (≤2s)</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiAcqTime" class="text-xl font-bold font-mono text-white">0.00 s</span>
+                    <span class="text-[10px] text-slate-500 block">Target: ≤ 2.0 s</span>
+                </div>
+            </div>
+
+            <!-- Target Loss Rate (< 5.0%) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-400">Target Loss Rate</span>
+                    <span id="badgeLossRate" class="kpi-badge-pass">PASS (&lt;5%)</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiLossRate" class="text-xl font-bold font-mono text-white">0.0%</span>
+                    <span class="text-[10px] text-slate-500 block">Target: &lt; 5.0%</span>
+                </div>
+            </div>
+
+            <!-- Re-acquisition Time (<= 1.0 s) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-400">Re-acquisition</span>
+                    <span id="badgeReAcqTime" class="kpi-badge-pass">PASS (≤1s)</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiReAcqTime" class="text-xl font-bold font-mono text-white">0.00 s</span>
+                    <span class="text-[10px] text-slate-500 block">Target: ≤ 1.0 s</span>
+                </div>
+            </div>
+
+            <!-- Processing Speed (>= 20 FPS) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-medium text-slate-400">Speed (FPS)</span>
+                    <span id="badgeFPS" class="kpi-badge-pass">PASS (≥20)</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiFPS" class="text-xl font-bold font-mono text-cyan-400">30.0</span>
+                    <span class="text-[10px] text-slate-500 block">Target: ≥ 20 FPS</span>
+                </div>
+            </div>
+
+            <!-- RMSE (Explicitly required for Benchmark 2) -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between bg-gradient-to-br from-slate-900 to-cyan-950/30">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-cyan-400">Session RMSE</span>
+                    <span class="text-[9px] bg-cyan-900/40 text-cyan-300 border border-cyan-600/30 px-1 rounded">ISRO B2</span>
+                </div>
+                <div class="mt-1">
+                    <span id="kpiRMSE" class="text-xl font-bold font-mono text-white">0.00 px</span>
+                    <span class="text-[10px] text-slate-500 block">Root Mean Square Error</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SIMULATION VIEW CONTAINER -->
+        <div id="simViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- LEFT COLUMN: DUAL DISPLAY & REAL TIME ERROR GRAPH (7 Cols) -->
+            <div class="lg:col-span-7 space-y-4">
+                
+                <!-- DUAL DISPLAY GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    
+                    <!-- DISPLAY A: MONOCHROME FPA CAMERA VIEWPORT (640x480) -->
+                    <div class="md:col-span-8 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col">
+                        <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Monochrome FPA Viewport</span>
+                            </div>
+                            <span class="text-[11px] font-mono text-slate-400">640 × 480 px</span>
+                        </div>
+                        <div class="relative aspect-[4/3] bg-black flex items-center justify-center">
+                            <canvas id="fpaCanvas" width="640" height="480" class="w-full h-full object-contain"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- DISPLAY B: GLOBAL FIELD TACTICAL RADAR (2000x2000 MINIMAP) -->
+                    <div class="md:col-span-4 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col">
+                        <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                <span class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Global Field Radar</span>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-400">2000 × 2000 px</span>
+                        </div>
+                        <div class="relative aspect-square bg-slate-950 flex items-center justify-center">
+                            <canvas id="radarCanvas" width="400" height="400" class="w-full h-full object-contain"></canvas>
+                        </div>
+                        <div class="p-2 bg-slate-950/60 border-t border-slate-800 text-[10px] text-slate-400 flex justify-between">
+                            <span><span class="text-sky-400 font-bold">□</span> PTZ Cam</span>
+                            <span><span class="text-yellow-400 font-bold">●</span> Beacon</span>
+                            <span><span class="text-cyan-400 font-bold">—</span> Trail</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REAL-TIME ERROR STRIP CHART (LAST 100 FRAMES) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-semibold text-slate-300">Live Centroiding Error History (Last 100 Frames)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-[11px] font-mono">
+                            <span class="text-emerald-400">Current: <span id="kpiAvgError">0.0 px</span></span>
+                            <span class="text-slate-400">Max: <span id="kpiMaxError">0.0 px</span></span>
+                            <span class="text-rose-400">Limit: 10.0 px</span>
+                        </div>
+                    </div>
+                    <div class="w-full h-28 bg-slate-950 rounded-lg overflow-hidden border border-slate-800 relative">
+                        <canvas id="errorChartCanvas" width="800" height="120" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+
+                <!-- CLAUDE AI INTELLIGENCE & AUTO-DIAGNOSTICS (DAY 8 REQUIREMENT) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-5 h-5 rounded-md bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-400 text-xs font-bold">
+                                AI
+                            </div>
+                            <span class="text-xs font-bold text-slate-200">Claude AI Intelligence & Tuning Advisor</span>
+                        </div>
+                        <button id="btnRunClaudeAnalysis" class="px-2.5 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 rounded text-xs font-medium transition flex items-center">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Run Diagnostic Analysis
+                        </button>
+                    </div>
+
+                    <div id="claudeOutput" class="text-slate-400 text-xs">
+                        Click "Run Diagnostic Analysis" to evaluate the current tracking performance log and generate optimal PID/Kalman parameter adjustments.
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: FULL PARAMETER CONFIGURATION SUITE (5 Cols) -->
+            <div class="lg:col-span-5 space-y-4">
+                
+                <!-- PARAMETERS CARD -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-xs font-bold text-slate-200 uppercase tracking-wider">Parameter Configuration Panel</span>
+                        <span class="text-[10px] text-emerald-400 font-mono">Hot-Reload Active</span>
+                    </div>
+
+                    <!-- 1. Target Parameters -->
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">Target & Beacon Parameters</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Shape Selector -->
+                            <div>
+                                <span class="text-[11px] text-slate-400 block mb-1">Target Shape</span>
+                                <select id="targetShape" class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500">
+                                    <option value="square" selected>Square (Default)</option>
+                                    <option value="circle">Circle</option>
+                                    <option value="cross">Cross</option>
+                                </select>
+                            </div>
+                            <!-- Size Slider -->
+                            <div>
+                                <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                    <span>Target Size</span>
+                                    <span id="targetSizeVal" class="font-mono text-cyan-400">10 px</span>
+                                </div>
+                                <input id="targetSize" type="range" min="5" max="20" value="10" class="w-full accent-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Initial Coordinates -->
+                        <div class="grid grid-cols-3 gap-1.5 pt-1">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Init X (px)</span>
+                                <input id="targetInitX" type="number" value="1000" min="100" max="1900" class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-2 py-1 font-mono">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Init Y (px)</span>
+                                <input id="targetInitY" type="number" value="1000" min="100" max="1900" class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-2 py-1 font-mono">
+                            </div>
+                            <div class="flex items-end space-x-1">
+                                <button id="btnApplyCoord" class="w-1/2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded border border-slate-700">Set</button>
+                                <button id="btnRandomCoord" class="w-1/2 py-1 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 text-xs rounded border border-cyan-800/60">Rand</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Motion Patterns -->
+                    <div class="space-y-2 border-t border-slate-800/80 pt-3">
+                        <label class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">Motion Patterns (Mandatory + Optional)</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="straight" class="accent-cyan-500">
+                                <span class="text-slate-300">Straight Line</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="circular" class="accent-cyan-500">
+                                <span class="text-slate-300">Circular</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="figure8" checked class="accent-cyan-500">
+                                <span class="text-slate-300">Figure of 8</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="random" class="accent-cyan-500">
+                                <span class="text-slate-300">Random Walk</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="spiral" class="accent-cyan-500">
+                                <span class="text-slate-400">Spiral (Opt)</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer hover:border-slate-700">
+                                <input type="radio" name="motionPattern" value="sinusoidal" class="accent-cyan-500">
+                                <span class="text-slate-400">Sinusoidal</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 3. Atmospheric Disturbances -->
+                    <div class="space-y-2 border-t border-slate-800/80 pt-3">
+                        <label class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">Atmospheric Disturbances</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input type="radio" name="atmosphericMode" value="clear" checked class="accent-cyan-500">
+                                <span class="text-slate-300">Clear</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input type="radio" name="atmosphericMode" value="haze" class="accent-cyan-500">
+                                <span class="text-slate-300">Haze (-30%)</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input type="radio" name="atmosphericMode" value="fog" class="accent-cyan-500">
+                                <span class="text-slate-300">Fog (+40%)</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input type="radio" name="atmosphericMode" value="rain" class="accent-cyan-500">
+                                <span class="text-slate-300">Rain Streaks</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input type="radio" name="atmosphericMode" value="lowlight" class="accent-cyan-500">
+                                <span class="text-slate-300">Low Light (-50%)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 4. Image Noise & Disturbances -->
+                    <div class="space-y-2 border-t border-slate-800/80 pt-3">
+                        <label class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">Sensor Noise & Jitter</label>
+                        <div class="grid grid-cols-3 gap-1.5 text-xs">
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input id="chkSaltPepper" type="checkbox" class="accent-cyan-500 rounded">
+                                <span class="text-slate-300 text-[11px]">Salt & Pepper</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input id="chkGaussian" type="checkbox" class="accent-cyan-500 rounded">
+                                <span class="text-slate-300 text-[11px]">Gaussian</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 bg-slate-950 p-1.5 rounded border border-slate-800 cursor-pointer">
+                                <input id="chkPoisson" type="checkbox" class="accent-cyan-500 rounded">
+                                <span class="text-slate-300 text-[11px]">Poisson</span>
+                            </label>
+                        </div>
+
+                        <!-- SLIDER SPECIFICALLY LABELLED: Standard Deviation in pixels (0 to 20 px) -->
+                        <div class="pt-1">
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span class="font-medium text-slate-300">Standard Deviation in pixels</span>
+                                <span id="noiseStdDevVal" class="font-mono text-cyan-400">5.0 px</span>
+                            </div>
+                            <input id="noiseStdDev" type="range" min="0" max="20" step="0.5" value="5.0" class="w-full accent-cyan-500">
+                        </div>
+
+                        <!-- Camera Jitter Slider (±0 to ±20 px) -->
+                        <div class="pt-1">
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>Max Camera Jitter</span>
+                                <span id="cameraJitterVal" class="font-mono text-cyan-400">±5 px</span>
+                            </div>
+                            <input id="cameraJitter" type="range" min="0" max="20" step="1" value="5" class="w-full accent-cyan-500">
+                        </div>
+
+                        <!-- Platform Motion Selector -->
+                        <div class="pt-1">
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>Platform Motion (±20 px max)</span>
+                            </div>
+                            <select id="platformMotion" class="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-2 py-1.5">
+                                <option value="linear" selected>Linear (Mandatory)</option>
+                                <option value="circular">Circular</option>
+                                <option value="random">Random</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5. Camera & FOV Constraints -->
+                    <div class="space-y-2 border-t border-slate-800/80 pt-3">
+                        <label class="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">Camera & PTZ Constraints</label>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block mb-1">Camera FOV (deg)</span>
+                                <div class="flex items-center space-x-1">
+                                    <input id="fovWidth" type="number" step="0.5" value="4.0" class="w-1/2 bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-1.5 py-1 font-mono">
+                                    <span class="text-xs text-slate-500">×</span>
+                                    <input id="fovHeight" type="number" step="0.5" value="3.0" class="w-1/2 bg-slate-950 border border-slate-800 text-xs text-slate-200 rounded px-1.5 py-1 font-mono">
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block mb-1">Ratio (Pixel/Degree)</span>
+                                <div id="pixelRatioDisplay" class="h-[29px] bg-slate-950 border border-slate-800 text-xs text-cyan-400 rounded px-2 flex items-center font-mono font-semibold">
+                                    160.0 px/deg
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pan and Tilt Sliders (5 to 10 deg/s) -->
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                    <span>Max Pan Speed</span>
+                                    <span id="panSpeedVal" class="font-mono text-cyan-400">5.0 °/s</span>
+                                </div>
+                                <input id="panSpeed" type="range" min="5" max="10" step="0.5" value="5.0" class="w-full accent-cyan-500">
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                    <span>Max Tilt Speed</span>
+                                    <span id="tiltSpeedVal" class="font-mono text-cyan-400">5.0 °/s</span>
+                                </div>
+                                <input id="tiltSpeed" type="range" min="5" max="10" step="0.5" value="5.0" class="w-full accent-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- PID Gains Tuning -->
+                        <div class="grid grid-cols-3 gap-1.5 pt-1">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Kp (<span id="pidKpVal" class="font-mono text-cyan-400">1.40</span>)</span>
+                                <input id="pidKp" type="range" min="0.1" max="4.0" step="0.05" value="1.4" class="w-full accent-cyan-500">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Ki (<span id="pidKiVal" class="font-mono text-cyan-400">0.05</span>)</span>
+                                <input id="pidKi" type="range" min="0.0" max="0.5" step="0.01" value="0.05" class="w-full accent-cyan-500">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Kd (<span id="pidKdVal" class="font-mono text-cyan-400">0.35</span>)</span>
+                                <input id="pidKd" type="range" min="0.0" max="1.5" step="0.05" value="0.35" class="w-full accent-cyan-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPORT ACTIONS (CSV, JSON, PRINT) -->
+                    <div class="border-t border-slate-800/80 pt-3 space-y-2">
+                        <label class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">Performance Log & Report Export</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button id="btnExportCSV" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition flex items-center justify-center">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                CSV Log
+                            </button>
+                            <button id="btnExportJSON" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-medium transition flex items-center justify-center">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                JSON Data
+                            </button>
+                            <button id="btnPrintReport" class="py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 rounded text-xs font-medium transition flex items-center justify-center">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                Print / PDF
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 3. BENCHMARK 2 VIDEO PIPELINE CONTAINER (HIDDEN IN DEFAULT SIM MODE) -->
+        <div id="videoViewContainer" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">Benchmark Performance 2 Evaluation Pipeline</span>
+                    <h2 class="text-base font-bold text-white">External .mp4 Video File Tracking (ISRO Supply Mode)</h2>
+                    <p class="text-xs text-slate-400">Processes arbitrary video files, bypassing PTZ camera, measuring RMSE, acquisition time, lock retention, and FPS.</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-mono text-cyan-300 bg-cyan-950 border border-cyan-800/60 px-2 py-1 rounded">30% Total Evaluation Weight</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <!-- Video Screen / Drag and Drop Area -->
+                <div class="md:col-span-8 space-y-3">
+                    <div id="videoDropZone" class="relative aspect-[4/3] bg-black rounded-xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden">
+                        <canvas id="benchmark2Canvas" width="640" height="480" class="w-full h-full object-contain"></canvas>
+                        
+                        <!-- Upload prompt overlay when empty -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 pointer-events-none" id="videoPlaceholder">
+                            <svg class="w-12 h-12 text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                            <span class="text-sm font-medium text-slate-300">Drag & Drop .mp4 test video here</span>
+                            <span class="text-xs text-slate-500 mt-1">or use the file picker below</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <input id="videoFileInput" type="file" accept="video/mp4,video/*" class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer">
+                        <span id="videoStatus" class="text-xs font-mono text-slate-400">Ready for evaluation video</span>
+                    </div>
+                </div>
+
+                <!-- Video Telemetry & Benchmark Metrics -->
+                <div class="md:col-span-4 bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3">
+                    <div>
+                        <span class="text-xs font-bold text-slate-200 uppercase tracking-wider block mb-3">Benchmark 2 Telemetry</span>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                                <span class="text-xs text-slate-400">Processing FPS</span>
+                                <span id="b2FPS" class="text-sm font-bold font-mono text-cyan-400">-- FPS</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                                <span class="text-xs text-slate-400">Tracking Error</span>
+                                <span id="b2Error" class="text-sm font-bold font-mono text-white">-- px</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                                <span class="text-xs text-slate-400 font-semibold text-cyan-300">Measured RMSE</span>
+                                <span id="b2RMSE" class="text-base font-bold font-mono text-emerald-400">-- px</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                                <span class="text-xs text-slate-400">Lock Retention</span>
+                                <span id="b2Retention" class="text-sm font-bold font-mono text-white">-- %</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                        <span class="font-semibold text-slate-300 block">ISRO Benchmark Protocol</span>
+                        <p>1. Supply unseen .mp4 video recorded in diverse motion/disturbance.</p>
+                        <p>2. Centroid detector + Kalman tracker updates frame-by-frame.</p>
+                        <p>3. Auto export generated at video end.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 py-4 border-t border-slate-800/80 text-xs text-slate-500 flex flex-wrap justify-between items-center gap-2">
+        <div>ISRO SIH 2026 Problem Statement 26169 — Coarse Alignment Free Space Optical Communication Testbed</div>
+        <div class="font-mono">Processing: <span id="kpiProcTime" class="text-slate-400">33.3 ms</span> | Session: <span id="kpiDuration" class="text-slate-400">0.0 s</span> | Lock Retention: <span id="kpiRetention" class="text-emerald-400">100.0%</span></div>
+    </footer>
+
+    <!-- ENGINE AND APP SCRIPTS -->
+    <script src="simulation_engine.js"></script>
+    <script src="bridge_client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
