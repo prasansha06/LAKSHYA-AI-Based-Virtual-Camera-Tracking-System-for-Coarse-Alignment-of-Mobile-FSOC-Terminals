@@ -1,5 +1,5 @@
 """
-ISRO SIH 2026 - Problem Statement 26169
+
 AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
 Python Backend Bridge Server (WebSocket / HTTP)
 
