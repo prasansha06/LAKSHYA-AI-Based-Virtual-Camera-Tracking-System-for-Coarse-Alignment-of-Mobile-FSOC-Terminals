@@ -1,8 +1,6 @@
 # AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
 
-**Smart India Hackathon (SIH) 2026 | Problem Statement ID: 26169**  
-**Organization:** Indian Space Research Organisation (ISRO)  
-**Theme:** Smart Automation and Space Technology  
+
 
 ---
 
