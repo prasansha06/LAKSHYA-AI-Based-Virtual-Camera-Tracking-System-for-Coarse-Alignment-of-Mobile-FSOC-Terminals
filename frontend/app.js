@@ -324,12 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
             badgeFPS.className = pass ? "kpi-badge-pass" : "kpi-badge-fail";
         }
 
-        // 2. Tracking Error (Target: <= 10 pixels)
+        // 2. Tracking Error (Target: <= 10 pixels steady-state)
         const kpiError = document.getElementById('kpiError');
         const badgeError = document.getElementById('badgeError');
         if (kpiError) kpiError.textContent = `${metrics.currentError} px`;
         if (badgeError) {
-            const pass = parseFloat(metrics.currentError) <= 10.0;
+            const evalErr = (metrics.trackerState === 'acquired' && parseFloat(metrics.avgError) > 0)
+                ? parseFloat(metrics.avgError)
+                : parseFloat(metrics.currentError);
+            const pass = evalErr <= 10.0;
             badgeError.textContent = pass ? "PASS (≤10px)" : "FAIL (>10px)";
             badgeError.className = pass ? "kpi-badge-pass" : "kpi-badge-fail";
         }
