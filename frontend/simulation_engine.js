@@ -799,17 +799,14 @@ class FSOCTrackingSimulator {
         // 3. Update Kalman Filter Prediction first to provide spatial validation gate
         const kalmanPred = this.kalman.predict(dt);
 
-        // Dynamically adapt Kalman measurement noise R to absorb camera jitter & sensor noise
-        const jitterVar = Math.pow(this.cameraJitterMax, 2);
-        const noiseVar = this.noiseTypes.gaussian ? Math.pow(this.noiseStdDev, 2) : 0;
-        const effR = 4.0 + 0.8 * jitterVar + 0.2 * noiseVar;
-        this.kalman.setNoiseMatrices(1.5, effR);
+        // Keep optimal balanced noise matrices to prevent lag on turns while absorbing jitter
+        this.kalman.setNoiseMatrices(6.0, 4.0);
 
         // 4. Run Centroid Detection with Spatial Gating around Kalman prediction
         const isTracking = (this.trackerState === 'acquired' || this.consecutiveDetections > 0);
         const predX = isTracking ? kalmanPred.x : null;
         const predY = isTracking ? kalmanPred.y : null;
-        const gateRadius = 50.0 + 2.0 * this.cameraJitterMax;
+        const gateRadius = 50.0 + 1.5 * this.cameraJitterMax;
         const detection = this.detectBeaconCentroid(predX, predY, gateRadius);
 
         let trackingPos = null;

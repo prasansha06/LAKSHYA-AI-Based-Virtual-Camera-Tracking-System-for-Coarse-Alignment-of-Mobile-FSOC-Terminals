@@ -253,9 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const pidKd = document.getElementById('pidKd');
 
         function updatePIDValues() {
-            const kp = parseFloat(pidKp ? pidKp.value : 1.4);
-            const ki = parseFloat(pidKi ? pidKi.value : 0.05);
-            const kd = parseFloat(pidKd ? pidKd.value : 0.35);
+            const kp = parseFloat(pidKp ? pidKp.value : 18.0);
+            const ki = parseFloat(pidKi ? pidKi.value : 0.5);
+            const kd = parseFloat(pidKd ? pidKd.value : 1.2);
             sim.pid.setGains(kp, ki, kd);
             document.getElementById('pidKpVal').textContent = kp.toFixed(2);
             document.getElementById('pidKiVal').textContent = ki.toFixed(2);
