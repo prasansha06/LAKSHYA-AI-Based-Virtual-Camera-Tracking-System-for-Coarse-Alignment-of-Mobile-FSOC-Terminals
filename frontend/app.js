@@ -136,8 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Motion Pattern Selector (4 mandatory: Straight, Circular, Figure of 8, Random)
         document.querySelectorAll('input[name="motionPattern"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
-                sim.motionPattern = e.target.value;
-                sim.motionTime = 0;
+                sim.setMotionPattern(e.target.value);
                 beaconTrail.length = 0;
                 bridge.sendParameterUpdate('motionPattern', sim.motionPattern);
             });

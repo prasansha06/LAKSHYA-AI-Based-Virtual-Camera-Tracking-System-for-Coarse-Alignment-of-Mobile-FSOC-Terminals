@@ -357,9 +357,78 @@ class FSOCTrackingSimulator {
         this.consecutiveLosses = 0;
     }
 
+    setMotionPattern(newPattern) {
+        this.motionPattern = newPattern;
+        this.motionTime = 0;
+
+        const cx = this.canvasSize.width / 2;
+        const cy = this.canvasSize.height / 2;
+
+        // 1. Calculate the initial target position for this pattern at t=0
+        if (newPattern === 'circular') {
+            this.targetPos.x = cx + 450;
+            this.targetPos.y = cy;
+        } else if (newPattern === 'figure8') {
+            this.targetPos.x = cx;
+            this.targetPos.y = cy;
+        } else if (newPattern === 'straight') {
+            this.targetPos.x = cx - 200;
+            this.targetPos.y = cy - 150;
+            this.targetVelocity.vx = 40;
+            this.targetVelocity.vy = 30;
+        } else if (newPattern === 'random') {
+            this.targetPos.x = cx;
+            this.targetPos.y = cy;
+            this.targetVelocity.vx = 35;
+            this.targetVelocity.vy = 25;
+        } else if (newPattern === 'spiral') {
+            this.targetPos.x = cx + 50;
+            this.targetPos.y = cy;
+        } else if (newPattern === 'sinusoidal') {
+            this.targetPos.x = cx;
+            this.targetPos.y = cy;
+        }
+
+        // 2. Re-align camera over the new target coordinate so it stays within FOV
+        const halfW = this.viewportSize.width / 2;
+        const halfH = this.viewportSize.height / 2;
+        this.cameraPos.x = Math.max(halfW, Math.min(this.canvasSize.width - halfW, this.targetPos.x));
+        this.cameraPos.y = Math.max(halfH, Math.min(this.canvasSize.height - halfH, this.targetPos.y));
+
+        // 3. Reset PID controller states (derivative spike & integral windup prevention)
+        this.pid.reset();
+        this.targetWorldVx = 0.0;
+        this.targetWorldVy = 0.0;
+        this.prevTargetWorldX = this.cameraPos.x;
+        this.prevTargetWorldY = this.cameraPos.y;
+
+        // 4. Reset Kalman filter to center of sensor viewport
+        this.kalman.reset(halfW, halfH);
+
+        // 5. Re-arm acquisition timers & state
+        this.trackerState = 're-acquiring';
+        this.consecutiveDetections = 0;
+        this.consecutiveLosses = 0;
+        this.acquisitionStartTime = performance.now();
+        this.acquisitionCompleted = false;
+        this.reAcquisitionStartTime = null;
+    }
+
     setInitialTargetPosition(x, y) {
         this.targetPos.x = Math.max(50, Math.min(this.canvasSize.width - 50, x));
         this.targetPos.y = Math.max(50, Math.min(this.canvasSize.height - 50, y));
+
+        // Re-align camera and controllers to prevent corner pinning
+        const halfW = this.viewportSize.width / 2;
+        const halfH = this.viewportSize.height / 2;
+        this.cameraPos.x = Math.max(halfW, Math.min(this.canvasSize.width - halfW, this.targetPos.x));
+        this.cameraPos.y = Math.max(halfH, Math.min(this.canvasSize.height - halfH, this.targetPos.y));
+        this.pid.reset();
+        this.targetWorldVx = 0.0;
+        this.targetWorldVy = 0.0;
+        this.prevTargetWorldX = this.cameraPos.x;
+        this.prevTargetWorldY = this.cameraPos.y;
+        this.kalman.reset(halfW, halfH);
     }
 
     randomizeTargetPosition() {
@@ -599,8 +668,8 @@ class FSOCTrackingSimulator {
         }
     }
 
-    detectBeaconCentroid() {
-        // Beacon detector using Gaussian blur + binary threshold + contour centroid
+    detectBeaconCentroid(predX = null, predY = null, gateRadius = 60) {
+        // Robust Optical Beacon Cluster Detector with Kalman Spatial Gating
         const W = this.viewportSize.width;
         const H = this.viewportSize.height;
         // Reuse existing image data if available, eliminating redundant GPU readback
@@ -613,21 +682,69 @@ class FSOCTrackingSimulator {
         if (this.atmosphericMode === 'fog') threshold = 175;
         if (this.atmosphericMode === 'haze') threshold = 100;
 
+        let bestScore = 0;
+        let bestPeakX = -1;
+        let bestPeakY = -1;
+        const maxDistSq = gateRadius * gateRadius;
+
+        // 1. Grid search (step 4) for densest local cluster to reject isolated noise & jitter sparks
+        const step = 4;
+        for (let y = 8; y < H - 8; y += step) {
+            for (let x = 8; x < W - 8; x += step) {
+                if (d[(y * W + x) * 4] > threshold) {
+                    let localCount = 0;
+                    for (let dy = -8; dy <= 8; dy += 2) {
+                        for (let dx = -8; dx <= 8; dx += 2) {
+                            if (d[((y + dy) * W + (x + dx)) * 4] > threshold) {
+                                localCount++;
+                            }
+                        }
+                    }
+
+                    // Score candidate cluster: density + Kalman spatial gating validation
+                    let score = localCount;
+                    if (predX !== null && predY !== null) {
+                        const distSq = (x - predX) * (x - predX) + (y - predY) * (y - predY);
+                        if (distSq < maxDistSq) {
+                            score += 10; // Prioritize true beacon near predicted trajectory
+                        }
+                    }
+
+                    if (localCount >= 2 && score > bestScore) {
+                        bestScore = score;
+                        bestPeakX = x;
+                        bestPeakY = y;
+                    }
+                }
+            }
+        }
+
+        // If no coherent beacon cluster found
+        if (bestPeakX === -1) {
+            return null; // Target Lost
+        }
+
+        // 2. High-precision intensity moments strictly within the localized cluster window
+        const winR = Math.max(10, Math.round(this.targetSize + 4));
+        const x0 = Math.max(0, bestPeakX - winR);
+        const x1 = Math.min(W - 1, bestPeakX + winR);
+        const y0 = Math.max(0, bestPeakY - winR);
+        const y1 = Math.min(H - 1, bestPeakY + winR);
+
         let sumX = 0;
         let sumY = 0;
-        let count = 0;
-        let minX = W, maxX = 0, minY = H, maxY = 0;
+        let sumWeight = 0;
+        let minX = x1, maxX = x0, minY = y1, maxY = y0;
+        let pixelCount = 0;
 
-        // Pixel scanning (Moments centroid calculation M10/M00, M01/M00)
-        for (let y = 0; y < H; y += 2) {
-            for (let x = 0; x < W; x += 2) {
-                const idx = (y * W + x) * 4;
-                const brightness = d[idx];
-
-                if (brightness > threshold) {
-                    sumX += x;
-                    sumY += y;
-                    count++;
+        for (let y = y0; y <= y1; y++) {
+            for (let x = x0; x <= x1; x++) {
+                const val = d[(y * W + x) * 4];
+                if (val > threshold) {
+                    sumX += x * val;
+                    sumY += y * val;
+                    sumWeight += val;
+                    pixelCount++;
                     if (x < minX) minX = x;
                     if (x > maxX) maxX = x;
                     if (y < minY) minY = y;
@@ -636,19 +753,23 @@ class FSOCTrackingSimulator {
             }
         }
 
-        // If no spot detected or noise cluster too small/large
-        if (count < 2 || count > (W * H * 0.35)) {
-            return null; // Target Lost
+        if (sumWeight === 0 || pixelCount < 2) {
+            return null;
         }
 
-        const cx = sumX / count;
-        const cy = sumY / count;
+        const cx = sumX / sumWeight;
+        const cy = sumY / sumWeight;
 
         return {
             x: cx,
             y: cy,
-            count: count,
-            bbox: { x: minX, y: minY, w: Math.max(12, maxX - minX + 6), h: Math.max(12, maxY - minY + 6) }
+            count: pixelCount,
+            bbox: {
+                x: minX,
+                y: minY,
+                w: Math.max(this.targetSize, maxX - minX + 2),
+                h: Math.max(this.targetSize, maxY - minY + 2)
+            }
         };
     }
 
@@ -675,11 +796,22 @@ class FSOCTrackingSimulator {
         // 2. Render Virtual Monochrome FPA Viewport
         this.renderMonochromeFPAScene();
 
-        // 3. Run Centroid Detection Algorithm
-        const detection = this.detectBeaconCentroid();
-
-        // 4. Update Kalman Filter State
+        // 3. Update Kalman Filter Prediction first to provide spatial validation gate
         const kalmanPred = this.kalman.predict(dt);
+
+        // Dynamically adapt Kalman measurement noise R to absorb camera jitter & sensor noise
+        const jitterVar = Math.pow(this.cameraJitterMax, 2);
+        const noiseVar = this.noiseTypes.gaussian ? Math.pow(this.noiseStdDev, 2) : 0;
+        const effR = 4.0 + 0.8 * jitterVar + 0.2 * noiseVar;
+        this.kalman.setNoiseMatrices(1.5, effR);
+
+        // 4. Run Centroid Detection with Spatial Gating around Kalman prediction
+        const isTracking = (this.trackerState === 'acquired' || this.consecutiveDetections > 0);
+        const predX = isTracking ? kalmanPred.x : null;
+        const predY = isTracking ? kalmanPred.y : null;
+        const gateRadius = 50.0 + 2.0 * this.cameraJitterMax;
+        const detection = this.detectBeaconCentroid(predX, predY, gateRadius);
+
         let trackingPos = null;
 
         if (detection !== null) {
@@ -767,9 +899,25 @@ class FSOCTrackingSimulator {
         this.cameraPos.x += control.vx * dt;
         this.cameraPos.y += control.vy * dt;
 
-        // Clamp camera position within global canvas bounds
         const halfW = this.viewportSize.width / 2;
         const halfH = this.viewportSize.height / 2;
+
+        // Autonomous Re-acquisition: If target escaped FOV (lost for > 15 frames),
+        // execute coarse search slew towards target world coordinate instead of staying frozen at corner
+        if (this.trackerState === 'lost' && this.consecutiveLosses > 15) {
+            const dirX = this.targetPos.x - this.cameraPos.x;
+            const dirY = this.targetPos.y - this.cameraPos.y;
+            const dist = Math.hypot(dirX, dirY);
+            if (dist > 10) {
+                const searchSpeed = Math.min(maxPanSpeedPx, 450.0);
+                this.cameraPos.x += (dirX / dist) * searchSpeed * dt;
+                this.cameraPos.y += (dirY / dist) * searchSpeed * dt;
+                this.kalman.reset(halfW, halfH);
+                this.pid.reset();
+            }
+        }
+
+        // Clamp camera position within global canvas bounds
         this.cameraPos.x = Math.max(halfW, Math.min(this.canvasSize.width - halfW, this.cameraPos.x));
         this.cameraPos.y = Math.max(halfH, Math.min(this.canvasSize.height - halfH, this.cameraPos.y));
 
