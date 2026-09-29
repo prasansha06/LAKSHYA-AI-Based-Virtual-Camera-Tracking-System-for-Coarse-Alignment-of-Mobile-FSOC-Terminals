@@ -1,12 +1,29 @@
-# AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
+# LAKSHYA: AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile FSOC Terminals
 
+**Smart India Hackathon (SIH) 2026** | **Problem Statement ID:** 26169  
+**Organization:** Indian Space Research Organisation (ISRO) | **Department of Space**  
+**Theme:** Smart Automation & Space Technology  
+**Audit Status:** ✅ **44/44 Requirements Verified & Covered (0 Gaps)** | **5/5 Hard Performance Targets Passed**
 
+---
+
+## 📌 Submission Documentation & Quick Links
+
+| Deliverable Mandated by ISRO | Document / Resource | Direct Link |
+| :--- | :--- | :--- |
+| **1. Technical Report (10–15 Pages)** | Architecture, Math, Disturbances & Benchmark Results | [📄 `docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md) |
+| **2. User Manual with GUI Guide** | Complete GUI Operating Guide, Hotkeys & Controls | [📖 `docs/USER_MANUAL.md`](docs/USER_MANUAL.md) |
+| **3. Official 6-Slide Presentation Deck** | SIH Final Presentation Template Deck | [📊 `docs/SIH_FINAL_6_SLIDE_PRESENTATION.md`](docs/SIH_FINAL_6_SLIDE_PRESENTATION.md) |
+| **4. Master Study & Viva Defense Material** | Technical Q&A Bank, Derivations & Aerospace Standards | [🎓 `docs/FSOC_FULL_STUDY_MATERIAL.md`](docs/FSOC_FULL_STUDY_MATERIAL.md) |
+| **5. Live Mission Control Dashboard** | Zero-Install Pure HTML5/Canvas 2D Simulator | [🚀 `frontend/index.html`](frontend/index.html) |
+| **6. Automated Verification Test Suite** | Validates all 44 requirements from ISRO PDF | [🧪 `tests/test_all_requirements.py`](tests/test_all_requirements.py) |
+| **7. Standalone Executable Packaging** | Automated PyInstaller standalone build script | [⚙️ `build_executable.py`](build_executable.py) |
 
 ---
 
 ## Overview
 
-This repository contains the **Frontend GUI and Real-Time Evaluation Dashboard** for ISRO Problem Statement 26169. Free Space Optical Communication (FSOC) requires solving the Pointing, Acquisition, and Tracking (PAT) problem for narrow laser beams. Coarse alignment maintains the remote terminal beacon within the camera Field of View (FOV).
+This repository contains the complete **Software Simulation Testbed, Detection & Tracking Pipeline, Closed-Loop PID Controller, and Real-Time Evaluation Dashboard** developed for ISRO Problem Statement 26169. Free Space Optical Communication (FSOC) requires solving the Pointing, Acquisition, and Tracking (PAT) problem for narrow laser beams between mobile transceivers. Coarse alignment maintains the remote optical beacon within the receiver camera Field of View (FOV) under high platform jitter, platform drift, and atmospheric turbulence.
 
 Per the ISRO technical specification, the frontend is built using modern web technologies to handle:
 1. **Real-time telemetry and KPI tracking** against mandatory ISRO targets.
