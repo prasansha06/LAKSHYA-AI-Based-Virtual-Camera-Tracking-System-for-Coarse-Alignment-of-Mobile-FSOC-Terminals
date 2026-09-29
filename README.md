@@ -13,11 +13,10 @@
 | :--- | :--- | :--- |
 | **1. Technical Report (10–15 Pages)** | Architecture, Math, Disturbances & Benchmark Results | [📄 `docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md) |
 | **2. User Manual with GUI Guide** | Complete GUI Operating Guide, Hotkeys & Controls | [📖 `docs/USER_MANUAL.md`](docs/USER_MANUAL.md) |
-| **3. Official 6-Slide Presentation Deck** | SIH Final Presentation Template Deck | [📊 `docs/SIH_FINAL_6_SLIDE_PRESENTATION.md`](docs/SIH_FINAL_6_SLIDE_PRESENTATION.md) |
-| **4. Master Study & Viva Defense Material** | Technical Q&A Bank, Derivations & Aerospace Standards | [🎓 `docs/FSOC_FULL_STUDY_MATERIAL.md`](docs/FSOC_FULL_STUDY_MATERIAL.md) |
-| **5. Live Mission Control Dashboard** | Zero-Install Pure HTML5/Canvas 2D Simulator | [🚀 `frontend/index.html`](frontend/index.html) |
-| **6. Automated Verification Test Suite** | Validates all 44 requirements from ISRO PDF | [🧪 `tests/test_all_requirements.py`](tests/test_all_requirements.py) |
-| **7. Standalone Executable Packaging** | Automated PyInstaller standalone build script | [⚙️ `build_executable.py`](build_executable.py) |
+| **3. Master Study & Viva Defense Material** | Technical Q&A Bank, Derivations & Aerospace Standards | [🎓 `docs/FSOC_FULL_STUDY_MATERIAL.md`](docs/FSOC_FULL_STUDY_MATERIAL.md) |
+| **4. Live Mission Control Dashboard** | Zero-Install Pure HTML5/Canvas 2D Simulator | [🚀 `frontend/index.html`](frontend/index.html) |
+| **5. Automated Verification Test Suite** | Validates all 44 requirements from ISRO PDF | [🧪 `tests/test_all_requirements.py`](tests/test_all_requirements.py) |
+| **6. Standalone Executable Packaging** | Automated PyInstaller standalone build script | [⚙️ `build_executable.py`](build_executable.py) |
 
 ---
 
@@ -88,10 +87,10 @@ fsoc_tracking_system/
 │   ├── __init__.py
 │   └── test_all_requirements.py       # Full automated audit verifying all 44 requirements from the ISRO specification
 │
-├── docs/                              # 9. Formal Documentation & Presentation Assets
+├── docs/                              # 9. Formal Documentation & Study Assets
 │   ├── TECHNICAL_REPORT.md            # Comprehensive 15-page Technical Report covering all 8 ISRO sections
 │   ├── USER_MANUAL.md                 # Complete User Manual, GUI operating instructions & troubleshooting
-│   └── PRESENTATION_STUDY_GUIDE.md    # Master viva defense questions, math breakdown & slide speaker notes
+│   └── FSOC_FULL_STUDY_MATERIAL.md    # Master viva defense questions, math breakdown & aerospace standards
 │
 ├── logs/                              # 10. Telemetry Data & Audit Exports
 │   ├── logger.py                      # Performance logging engine calculating RMSE, loss rate, and FPS
